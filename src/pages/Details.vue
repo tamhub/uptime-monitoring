@@ -1,6 +1,6 @@
 <template>
     <transition name="slide-fade" appear>
-        <div v-if="monitor">
+        <div v-if="monitor" class="printable-content">
             <router-link v-if="group !== ''" :to="monitorURL(monitor.parent)"> {{ group }}</router-link>
             <h1>
                 {{ monitor.name }}
@@ -9,7 +9,6 @@
                     <div>{{ monitor.id }}</div>
                 </div>
             </h1>
-            <!-- eslint-disable-next-line vue/no-v-html-->
             <p v-if="monitor.description" v-html="descriptionHTML"></p>
             <div class="d-flex">
                 <div class="tags">
@@ -71,21 +70,24 @@
                         <font-awesome-icon icon="trash" /> {{ $t("Delete") }}
                     </button>
                 </div>
+
+                <button class="btn btn-primary" @click="downloadPDF">
+                    <font-awesome-icon icon="file-pdf" /> {{ $t("Download PDF") }}
+                </button>
             </div>
 
-            <div class="shadow-box">
-                <div class="row">
-                    <div class="col-md-8">
+            <div class="shadow-box heartbeat-bar">
+                <div class="row heartbeat-bar-row">
+                    <div class="col-md-8 heartbeat-bar-col-1">
                         <HeartbeatBar :monitor-id="monitor.id" />
                         <span class="word">{{ $t("checkEverySecond", [ monitor.interval ]) }}</span>
                     </div>
-                    <div class="col-md-4 text-center">
+                    <div class="col-md-4 text-center heartbeat-bar-col-2">
                         <span class="badge rounded-pill" :class=" 'bg-' + status.color " style="font-size: 30px;" data-testid="monitor-status">{{ status.text }}</span>
                     </div>
                 </div>
             </div>
 
-            <!-- Push Examples -->
             <div v-if="monitor.type === 'push'" class="shadow-box big-padding">
                 <a href="#" @click="pushMonitor.showPushExamples = !pushMonitor.showPushExamples">{{ $t("pushViewCode") }}</a>
 
@@ -113,7 +115,6 @@
                 </transition>
             </div>
 
-            <!-- Stats -->
             <div class="shadow-box big-padding text-center stats">
                 <div class="row">
                     <div v-if="monitor.type !== 'group'" class="col-12 col-sm col row d-flex align-items-center d-sm-block">
@@ -133,7 +134,6 @@
                         </span>
                     </div>
 
-                    <!-- Uptime (24-hour) -->
                     <div class="col-12 col-sm col row d-flex align-items-center d-sm-block">
                         <h4 class="col-4 col-sm-12">{{ $t("Uptime") }}</h4>
                         <p class="col-4 col-sm-12 mb-0 mb-sm-2">(24{{ $t("-hour") }})</p>
@@ -142,7 +142,6 @@
                         </span>
                     </div>
 
-                    <!-- Uptime (30-day) -->
                     <div class="col-12 col-sm col row d-flex align-items-center d-sm-block">
                         <h4 class="col-4 col-sm-12">{{ $t("Uptime") }}</h4>
                         <p class="col-4 col-sm-12 mb-0 mb-sm-2">(30{{ $t("-day") }})</p>
@@ -151,7 +150,6 @@
                         </span>
                     </div>
 
-                    <!-- Uptime (1-year) -->
                     <div class="col-12 col-sm col row d-flex align-items-center d-sm-block">
                         <h4 class="col-4 col-sm-12">{{ $t("Uptime") }}</h4>
                         <p class="col-4 col-sm-12 mb-0 mb-sm-2">(1{{ $t("-year") }})</p>
@@ -170,7 +168,6 @@
                 </div>
             </div>
 
-            <!-- Cert Info Box -->
             <transition name="slide-fade" appear>
                 <div v-if="showCertInfoBox" class="shadow-box big-padding text-center">
                     <div class="row">
@@ -181,16 +178,14 @@
                 </div>
             </transition>
 
-            <!-- Ping Chart -->
             <div v-if="showPingChartBox" class="shadow-box big-padding text-center ping-chart-wrapper">
                 <div class="row">
-                    <div class="col">
+                    <div class="col chart-wrapper">
                         <PingChart :monitor-id="monitor.id" />
                     </div>
                 </div>
             </div>
 
-            <!-- Screenshot -->
             <div v-if="monitor.type === 'real-browser'" class="shadow-box">
                 <div class="row">
                     <div class="col-md-6 zoom-cursor">
@@ -378,9 +373,6 @@ export default {
         },
 
         tlsInfo() {
-            // Add: this.$root.tlsInfoList[this.monitor.id].certInfo
-            // Fix: TypeError: Cannot read properties of undefined (reading 'validTo')
-            // Reason: TLS Info object format is changed in 1.8.0, if for some reason, it cannot connect to the site after update to 1.8.0, the object is still in the old format.
             if (this.$root.tlsInfoList[this.monitor.id] && this.$root.tlsInfoList[this.monitor.id].certInfo) {
                 return this.$root.tlsInfoList[this.monitor.id];
             }
@@ -450,79 +442,35 @@ export default {
 
     methods: {
         getResBaseURL,
-        /**
-         * Request a test notification be sent for this monitor
-         * @returns {void}
-         */
         testNotification() {
             this.$root.getSocket().emit("testNotification", this.monitor.id);
             this.$root.toastSuccess("Test notification is requested.");
         },
-
-        /**
-         * Show dialog to confirm pause
-         * @returns {void}
-         */
         pauseDialog() {
             this.$refs.confirmPause.show();
         },
-
-        /**
-         * Resume this monitor
-         * @returns {void}
-         */
         resumeMonitor() {
             this.$root.getSocket().emit("resumeMonitor", this.monitor.id, (res) => {
                 this.$root.toastRes(res);
             });
         },
-
-        /**
-         * Request that this monitor is paused
-         * @returns {void}
-         */
         pauseMonitor() {
             this.$root.getSocket().emit("pauseMonitor", this.monitor.id, (res) => {
                 this.$root.toastRes(res);
             });
         },
-
-        /**
-         * Show dialog to confirm deletion
-         * @returns {void}
-         */
         deleteDialog() {
             this.$refs.confirmDelete.show();
         },
-
-        /**
-         * Show Screenshot Dialog
-         * @returns {void}
-         */
         showScreenshotDialog() {
             this.$refs.screenshotDialog.show();
         },
-
-        /**
-         * Show dialog to confirm clearing events
-         * @returns {void}
-         */
         clearEventsDialog() {
             this.$refs.confirmClearEvents.show();
         },
-
-        /**
-         * Show dialog to confirm clearing heartbeats
-         * @returns {void}
-         */
         clearHeartbeatsDialog() {
             this.$refs.confirmClearHeartbeats.show();
         },
-
-        /**
-         * Request that this monitor is deleted
-         * @returns {void}
-         */
         deleteMonitor() {
             this.$root.deleteMonitor(this.monitor.id, (res) => {
                 this.$root.toastRes(res);
@@ -531,11 +479,6 @@ export default {
                 }
             });
         },
-
-        /**
-         * Request that this monitors events are cleared
-         * @returns {void}
-         */
         clearEvents() {
             this.$root.clearEvents(this.monitor.id, (res) => {
                 if (res.ok) {
@@ -545,11 +488,6 @@ export default {
                 }
             });
         },
-
-        /**
-         * Request that this monitors heartbeats are cleared
-         * @returns {void}
-         */
         clearHeartbeats() {
             this.$root.clearHeartbeats(this.monitor.id, (res) => {
                 if (! res.ok) {
@@ -557,12 +495,6 @@ export default {
                 }
             });
         },
-
-        /**
-         * Return the correct title for the ping stat
-         * @param {boolean} average Is the statistic an average?
-         * @returns {string} Title formatted dependent on monitor type
-         */
         pingTitle(average = false) {
             let translationPrefix = "";
             if (average) {
@@ -575,21 +507,9 @@ export default {
 
             return this.$t(translationPrefix + "Ping");
         },
-
-        /**
-         * Get URL of monitor
-         * @param {number} id ID of monitor
-         * @returns {string} Relative URL of monitor
-         */
         monitorURL(id) {
             return getMonitorRelativeURL(id);
         },
-
-        /**
-         * Filter and hide password in URL for display
-         * @param {string} urlString URL to censor
-         * @returns {string} Censored URL
-         */
         filterPassword(urlString) {
             try {
                 let parsedUrl = new URL(urlString);
@@ -602,11 +522,6 @@ export default {
                 return urlString.replaceAll(/Password=(.+);/ig, "Password=******;");
             }
         },
-
-        /**
-         * Retrieves the length of the important heartbeat list for this monitor.
-         * @returns {void}
-         */
         getImportantHeartbeatListLength() {
             if (this.monitor) {
                 this.$root.getSocket().emit("monitorImportantHeartbeatListCount", this.monitor.id, (res) => {
@@ -617,11 +532,6 @@ export default {
                 });
             }
         },
-
-        /**
-         * Retrieves the important heartbeat list for the current page.
-         * @returns {void}
-         */
         getImportantHeartbeatListPaged() {
             if (this.monitor) {
                 const offset = (this.page - 1) * this.perPage;
@@ -632,12 +542,6 @@ export default {
                 });
             }
         },
-
-        /**
-         * Updates the displayed records when a new important heartbeat arrives.
-         * @param {object} heartbeat - The heartbeat object received.
-         * @returns {void}
-         */
         onNewImportantHeartbeat(heartbeat) {
             if (heartbeat.monitorID === this.monitor?.id) {
                 if (this.page === 1) {
@@ -649,16 +553,9 @@ export default {
                 }
             }
         },
-
-        /**
-         * Highlight the example code
-         * @param {string} code Code
-         * @returns {string} Highlighted code
-         */
         pushExampleHighlighter(code) {
             return highlight(code, languages.js);
         },
-
         loadPushExample() {
             this.pushMonitor.code = "";
             this.$root.getSocket().emit("getPushExample", this.pushMonitor.currentExample, (res) => {
@@ -667,6 +564,15 @@ export default {
                     .replace("https://example.com/api/push/key?status=up&msg=OK&ping=", this.pushURL);
                 this.pushMonitor.code = code;
             });
+        },
+
+        /**
+         * Triggers the browser's print dialog to save the page as a PDF.
+         * Relies on print-specific CSS to format the output.
+         * @returns {void}
+         */
+        downloadPDF() {
+            window.print();
         }
     },
 };
@@ -833,5 +739,119 @@ table {
     .dark & {
         opacity: 0.7;
     }
+}
+
+.functions {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+}
+</style>
+
+<style lang="scss">
+@media print {
+    @import "../assets/vars.scss";
+
+    :root {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    // 1. Hide everything on the page by default.
+    body * {
+        visibility: hidden;
+    }
+
+    // 2. Make ONLY the printable area and its children visible.
+    .printable-content, .printable-content * {
+        visibility: visible;
+    }
+
+    // 3. Position the printable area to take up the entire page.
+    .printable-content {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        margin: 0;
+        padding: 1rem;
+    }
+
+    // 4. Hide unwanted interactive elements INSIDE the printable area.
+    .printable-content .functions,
+    .printable-content .dropdown-clear-data,
+    .printable-content .kuma_pagination,
+    .printable-content .btn,
+    .printable-content .confirm {
+        display: none !important;
+    }
+
+    // 5. Apply print-friendly styling within the printable area.
+    .printable-content .shadow-box {
+        box-shadow: none !important;
+        border: 1px solid #dee2e6;
+        page-break-inside: avoid;
+    }
+
+    .printable-content a[href]:after {
+        content: "" !important;
+    }
+
+    * {
+        color-adjust: exact !important;
+    }
+
+    // ===============================================================
+    // NEW: Styles for Heartbeat Bar and Status Layout
+    // ===============================================================
+    .printable-content .shadow-box:first-of-type > .row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: nowrap;
+    }
+
+    .printable-content .shadow-box:first-of-type .col-md-4 {
+        width: auto;
+        flex: 0 0 auto;
+    }
+
+    // ===============================================================
+    // NEW: Styles for Table Header
+    // ===============================================================
+    .printable-content .table thead th {
+        background-color: #f2f2f2;
+        border: 1px solid #dee2e6 !important;
+    }
+
+    // 6. Handle dark theme colors correctly within the printable area.
+    .dark .printable-content {
+        background-color: #161B22 !important;
+
+        h1, h2, h3, h4, p, span, div, td, th, a, .keyword, .monitor-id, .word, .num {
+            color: #c9d1d9 !important;
+        }
+
+        .shadow-box {
+            background-color: #0D1117 !important;
+            border: 1px solid #30363d !important;
+        }
+
+        // Dark mode override for new table header styles
+        .table thead th {
+            background-color: #212529;
+            border-color: #495057 !important;
+        }
+
+        .table {
+            --bs-table-color: #c9d1d9;
+            --bs-table-bg: #0D1117;
+            --bs-table-border-color: #30363d;
+            --bs-table-hover-color: #c9d1d9;
+            --bs-table-hover-bg: #161B22;
+        }
+    }
+
 }
 </style>

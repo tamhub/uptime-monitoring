@@ -15,13 +15,13 @@ export default defineConfig({
         port: 3000,
     },
     define: {
-        "FRONTEND_VERSION": JSON.stringify(process.env.npm_package_version),
+        FRONTEND_VERSION: JSON.stringify(process.env.npm_package_version),
         "process.env": {},
     },
     plugins: [
         vue(),
         visualizer({
-            filename: "tmp/dist-stats.html"
+            filename: "tmp/dist-stats.html",
         }),
         viteCompression({
             algorithm: "gzip",
@@ -31,14 +31,14 @@ export default defineConfig({
             algorithm: "brotliCompress",
             filter: viteCompressionFilter,
         }),
-        VueDevTools(),
+        // VueDevTools(),
     ],
     css: {
         postcss: {
-            "parser": postCssScss,
-            "map": false,
-            "plugins": [ postcssRTLCSS ]
-        }
+            parser: postCssScss,
+            map: false,
+            plugins: [ postcssRTLCSS ],
+        },
     },
     build: {
         commonjsOptions: {
@@ -46,10 +46,8 @@ export default defineConfig({
         },
         rollupOptions: {
             output: {
-                manualChunks(id, { getModuleInfo, getModuleIds }) {
-
-                }
-            }
+                manualChunks(id, { getModuleInfo, getModuleIds }) {},
+            },
         },
-    }
+    },
 });
