@@ -37,30 +37,28 @@ class Slack extends NotificationProvider {
 
         if (baseURL) {
             actions.push({
-                "type": "button",
-                "text": {
-                    "type": "plain_text",
-                    "text": "Visit Uptime Kuma",
+                type: "button",
+                text: {
+                    type: "plain_text",
+                    text: "Visit Uptime Kuma",
                 },
-                "value": "Uptime-Kuma",
-                "url": baseURL + getMonitorRelativeURL(monitorJSON.id),
+                value: "Uptime-Kuma",
+                url: baseURL + getMonitorRelativeURL(monitorJSON.id),
             });
-
         }
 
         const address = this.extractAddress(monitorJSON);
         if (address) {
             try {
                 actions.push({
-                    "type": "button",
-                    "text": {
-                        "type": "plain_text",
-                        "text": "Visit site",
+                    type: "button",
+                    text: {
+                        type: "plain_text",
+                        text: "Visit site",
                     },
-                    "value": "Site",
-                    "url": new URL(address),
+                    value: "Site",
+                    url: new URL(address),
                 });
-
             } catch (e) {
                 log.debug("slack", `Failed to parse address ${address} as URL`);
             }
@@ -79,42 +77,75 @@ class Slack extends NotificationProvider {
      * @returns {Array<object>} The rich content blocks for the Slack message
      */
     buildBlocks(baseURL, monitorJSON, heartbeatJSON, title, msg) {
-
         //create an array to dynamically add blocks
         const blocks = [];
 
-        // the header block
-        blocks.push({
-            "type": "header",
-            "text": {
-                "type": "plain_text",
-                "text": title,
-            },
-        });
+        // Determine status text and emoji
+        const isUp = heartbeatJSON["status"] === UP;
+        const statusText = isUp ? "is up" : "is down";
+        const statusEmoji = isUp ? "✅" : "🔴";
 
-        // the body block, containing the details
+        // the header block with monitor name and status
+        // blocks.push({
+        //     type: "header",
+        //     text: {
+        //         type: "plain_text",
+        //         text: `${monitorJSON.name} ${statusText}`,
+        //     },
+        // });
+
+        // Create fields array for the section
+        const fields = [];
+
+        // Add the monitored URL if available
+        const address = this.extractAddress(monitorJSON);
+        if (address) {
+            fields.push({
+                type: "mrkdwn",
+                text: `${address}`,
+            });
+        }
+
+        // Add status with emoji
+        // fields.push({
+        //     type: "mrkdwn",
+        //     text: `${statusEmoji} ${isUp ? "Up" : "Down"}`,
+        // });
+
+        // Add timestamp
+        // fields.push({
+        //     type: "mrkdwn",
+        //     text: `${heartbeatJSON["localDateTime"]}`,
+        // });
+
+        // the body block, containing the details in a more compact format
         blocks.push({
-            "type": "section",
-            "fields": [
-                {
-                    "type": "mrkdwn",
-                    "text": "*Message*\n" + msg,
-                },
-                {
-                    "type": "mrkdwn",
-                    "text": `*Time (${heartbeatJSON["timezone"]})*\n${heartbeatJSON["localDateTime"]}`,
-                }
-            ],
+            type: "section",
+            fields: fields,
         });
 
         const actions = this.buildActions(baseURL, monitorJSON);
-        if (actions.length > 0) {
-            //the actions block, containing buttons
-            blocks.push({
-                "type": "actions",
-                "elements": actions,
-            });
-        }
+        // if (actions.length > 0) {
+        //     // Update button text to match Pingdom style
+        //     const updatedActions = actions.map((action) => {
+        //         if (action.text.text === "Visit Uptime Kuma") {
+        //             return {
+        //                 ...action,
+        //                 text: {
+        //                     type: "plain_text",
+        //                     text: "View details",
+        //                 },
+        //             };
+        //         }
+        //         return action;
+        //     });
+
+        //     // the actions block, containing buttons
+        //     blocks.push({
+        //         type: "actions",
+        //         elements: updatedActions,
+        //     });
+        // }
 
         return blocks;
     }
@@ -123,6 +154,7 @@ class Slack extends NotificationProvider {
      * @inheritdoc
      */
     async send(notification, msg, monitorJSON = null, heartbeatJSON = null) {
+        console.log("last test");
         const okMsg = "Sent Successfully.";
 
         if (notification.slackchannelnotify) {
@@ -132,10 +164,10 @@ class Slack extends NotificationProvider {
         try {
             if (heartbeatJSON == null) {
                 let data = {
-                    "text": msg,
-                    "channel": notification.slackchannel,
-                    "username": notification.slackusername,
-                    "icon_emoji": notification.slackiconemo,
+                    text: "_",
+                    channel: notification.slackchannel,
+                    username: notification.slackusername,
+                    icon_emoji: notification.slackiconemo,
                 };
                 await axios.post(notification.slackwebhookURL, data);
                 return okMsg;
@@ -144,35 +176,57 @@ class Slack extends NotificationProvider {
             const baseURL = await setting("primaryBaseURL");
 
             const title = "Uptime Kuma Alert";
-            let data = {
-                "text": msg,
-                "channel": notification.slackchannel,
-                "username": notification.slackusername,
-                "icon_emoji": notification.slackiconemo,
-                "attachments": [],
-            };
+            const isUp = heartbeatJSON["status"] === UP;
+            const errorArr = msg.split(" ");
+            const error = errorArr[errorArr.length - 1];
+            const errorMessage = errorArr.slice(0, -1).join(" ");
 
-            if (notification.slackrichmessage) {
-                data.attachments.push(
+            console.log(errorMessage, "errorMessage");
+            console.log(error, "error");
+
+            let data = {
+                // text: monitorJSON.name + `${isUp ? " is up" : "is down"}`,
+                channel: notification.slackchannel,
+                username: notification.slackusername,
+                icon_emoji: notification.slackiconemo,
+                attachments: [
                     {
-                        "color": (heartbeatJSON["status"] === UP) ? "#2eb886" : "#e01e5a",
-                        "blocks": this.buildBlocks(baseURL, monitorJSON, heartbeatJSON, title, msg),
-                    }
-                );
-            } else {
-                data.text = `${title}\n${msg}`;
-            }
+                        title:
+                            monitorJSON?.name +
+                            `${isUp ? " is up" : " is down"}`,
+                        color: isUp ? "#2eb886" : "#D50200",
+                        text: `<${this.extractAddress(monitorJSON)}|${
+                            this.extractAddress(monitorJSON).split("//")[1]
+                        }> • ${errorMessage}`,
+                    },
+                ],
+            };
+            // if (notification.slackrichmessage) {
+            //     data.attachments.push({
+            //         color:
+            //             heartbeatJSON["status"] === UP ? "#2eb886" : "#e01e5a",
+            //         blocks: this.buildBlocks(
+            //             baseURL,
+            //             monitorJSON,
+            //             heartbeatJSON,
+            //             title,
+            //             msg
+            //         ),
+            //     });
+            // } else {
+            //     data.text = "_";
+            // }
 
             if (notification.slackbutton) {
                 await Slack.deprecateURL(notification.slackbutton);
             }
 
+            console.log(msg, "msg");
             await axios.post(notification.slackwebhookURL, data);
             return okMsg;
         } catch (error) {
             this.throwGeneralAxiosError(error);
         }
-
     }
 }
 
