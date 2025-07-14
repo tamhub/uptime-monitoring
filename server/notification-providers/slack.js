@@ -197,7 +197,11 @@ class Slack extends NotificationProvider {
                         color: isUp ? "#2eb886" : "#D50200",
                         text: `<${this.extractAddress(monitorJSON)}|${
                             this.extractAddress(monitorJSON).split("//")[1]
-                        }> • ${errorMessage}`,
+                        }> • ${
+                            errorMessage.includes("200")
+                                ? errorMessage
+                                : "Reason: " + errorMessage
+                        }`,
                     },
                 ],
             };

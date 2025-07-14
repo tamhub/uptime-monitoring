@@ -1,5 +1,5 @@
 <template>
-    <span class="badge rounded-pill" :class=" 'bg-' + color ">{{ text }}</span>
+    <span class="badge rounded-pill" :style=" 'background-color: ' + color ">{{ text }}</span>
 </template>
 
 <script>
@@ -15,22 +15,22 @@ export default {
     computed: {
         color() {
             if (this.status === 0) {
-                return "danger";
+                return "#dc3545";
             }
 
             if (this.status === 1) {
-                return "primary";
+                return "#5cdd8b";
             }
 
             if (this.status === 2) {
-                return "warning";
+                return "#f8a306";
             }
 
             if (this.status === 3) {
-                return "maintenance";
+                return "#1747f5";
             }
 
-            return "secondary";
+            return "#584fff";
         },
 
         text() {

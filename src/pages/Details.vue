@@ -83,7 +83,18 @@
                         <span class="word">{{ $t("checkEverySecond", [ monitor.interval ]) }}</span>
                     </div>
                     <div class="col-md-4 text-center heartbeat-bar-col-2">
-                        <span class="badge rounded-pill" :class=" 'bg-' + status.color " style="font-size: 30px;" data-testid="monitor-status">{{ status.text }}</span>
+                        <span
+	                        class="badge rounded-pill ${status.color}"
+	                        :style="status?.color === 'primary'
+		                        ? { backgroundColor: '#5cdd8b' }
+		                        : status?.color === 'danger'
+			                        ? { backgroundColor: '#dc3545' }
+			                        : {}"
+	                        style="font-size: 30px;"
+	                        data-testid="monitor-status"
+                        >
+	                        {{ status.text }}
+                         </span>
                     </div>
                 </div>
             </div>

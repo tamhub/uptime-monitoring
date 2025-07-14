@@ -294,7 +294,7 @@ export default {
         }
 
         .beat {
-            background-color: $primary;
+            background-color: $chart-color;
             border-radius: $border-radius;
 
             /*
