@@ -163,14 +163,15 @@ class Slack extends NotificationProvider {
 
         try {
             if (heartbeatJSON == null) {
-                let data = {
-                    text: "_",
-                    channel: notification.slackchannel,
-                    username: notification.slackusername,
-                    icon_emoji: notification.slackiconemo,
-                };
-                await axios.post(notification.slackwebhookURL, data);
-                return okMsg;
+                return;
+                // let data = {
+                //     text: "_",
+                //     channel: notification.slackchannel,
+                //     username: notification.slackusername,
+                //     icon_emoji: notification.slackiconemo,
+                // };
+                // await axios.post(notification.slackwebhookURL, data);
+                // return okMsg;
             }
 
             const baseURL = await setting("primaryBaseURL");
