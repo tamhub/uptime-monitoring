@@ -178,12 +178,40 @@ class Slack extends NotificationProvider {
 
             const title = "Uptime Kuma Alert";
             const isUp = heartbeatJSON["status"] === UP;
-            const errorArr = msg.split(" ");
-            const error = errorArr[errorArr.length - 1];
-            const errorMessage = errorArr.slice(0, -1).join(" ");
+            const monitorAddress = this.extractAddress(monitorJSON);
+            let msgWithoutMonitorAddress = msg;
 
-            console.log(errorMessage, "errorMessage");
-            console.log(error, "error");
+            if (monitorAddress && monitorAddress !== "Heartbeat") {
+                // Normalize the address by stripping the protocol (if any)
+                const strippedAddress = monitorAddress.replace(
+                    /^https?:\/\//i,
+                    ""
+                );
+
+                // Escape regex special chars in the address
+                const escapedAddress = strippedAddress.replace(
+                    /[.*+?^${}()|[\]\\]/g,
+                    "\\$&"
+                );
+
+                /*
+                 * Build a pattern that matches:
+                 *  - Optional protocol (http:// or https://)
+                 *  - The stripped address (domain + optional path/port)
+                 *  - Optional trailing path until a whitespace
+                 */
+                const addressPattern = new RegExp(
+                    `(?:https?:\\/\\/)?${escapedAddress}(?:\\/[^\\s]*)?`,
+                    "gi"
+                );
+
+                msgWithoutMonitorAddress = msg.replace(addressPattern, "");
+
+                // Remove any extra spaces left after replacement
+                msgWithoutMonitorAddress = msgWithoutMonitorAddress
+                    .replace(/\s+/g, " ")
+                    .trim();
+            }
 
             let data = {
                 // text: monitorJSON.name + `${isUp ? " is up" : "is down"}`,
@@ -199,9 +227,9 @@ class Slack extends NotificationProvider {
                         text: `<${this.extractAddress(monitorJSON)}|${
                             this.extractAddress(monitorJSON).split("//")[1]
                         }> ${
-                            /\b2\d{2}\b/.test(errorMessage)
+                            /\b2\d{2}\b/.test(msgWithoutMonitorAddress)
                                 ? ""
-                                : " • Reason: " + errorMessage
+                                : " • Reason: " + msgWithoutMonitorAddress
                         }`,
                     },
                 ],
@@ -226,7 +254,6 @@ class Slack extends NotificationProvider {
                 await Slack.deprecateURL(notification.slackbutton);
             }
 
-            console.log(msg, "msg");
             await axios.post(notification.slackwebhookURL, data);
             return okMsg;
         } catch (error) {
